@@ -10,7 +10,7 @@ const TEAM_MEMBERS = [
     id: 1,
     name: 'Ahmed Atta',
     role: 'Leader',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: 'lead the development of Syncare, overseeing the frontend experience and ensuring a seamless and intuitive user interface. In parallel, I independently developed the face recognition model, handling its design and implementation as a separate system to enhance identity verification and overall system efficiency.',
     photoUrl: `${process.env.PUBLIC_URL}/images/image1.jpg`,
   },
   {
