@@ -28,12 +28,14 @@ const Navbar = ({ theme, onToggleTheme }) => {
     ? [
         { to: '/dashboard', label: t('dashboard') },
         { to: '/about', label: 'About Us' },
+        { to: '/map', label: '3D Map' },
         { to: '/appointments/book', label: t('bookAppointment') },
         { to: '/appointments', label: t('myAppointments') },
       ]
     : [
         { to: '/', label: t('home') },
         { to: '/about', label: 'About Us' },
+        { to: '/map', label: '3D Map' },
         { to: '/login', label: t('signIn') },
         { to: '/signup', label: t('register') },
       ];
