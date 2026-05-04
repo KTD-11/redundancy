@@ -51,8 +51,10 @@ export const AuthProvider = ({ children }) => {
     setIsLoggedIn(false);
   }, []);
 
+  const isDoctor = !!user?.doctor_id;
+
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, login, logout, getToken }}>
+    <AuthContext.Provider value={{ user, isLoggedIn, isDoctor, login, logout, getToken }}>
       {children}
     </AuthContext.Provider>
   );

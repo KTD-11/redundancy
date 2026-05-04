@@ -10,12 +10,12 @@ import api from './apiClient';
  * @param {{ name, age, gender, number, gov_id, password }} payload
  * @returns {{ status, message, id, token }}
  */
-export const signup = (payload) => api.post('/signup/', payload, false);
+export const signup = (payload) => api.post('/patient/signup/', payload, false);
 
 /**
- * Sign in with gov_id + password.
- * @param {{ gov_id, password }} payload
- * @returns {{ status, data: { patient_id, patient_name, patient_gender }, token }}
+ * Sign in with auth_id + password + staff flag.
+ * @param {{ auth_id, password, staff }} payload
+ * @returns {{ status, data: { patient_id, patient_name, patient_gender } | { doctor_id, doctor_name, doctor_specialty }, token }}
  */
 export const signin = (payload) => api.post('/signin/', payload, false);
 
@@ -24,4 +24,4 @@ export const signin = (payload) => api.post('/signin/', payload, false);
  * Requires a valid JWT (auth = true).
  * @returns {{ status, message }}
  */
-export const deleteAccount = () => api.delete('/remove/', true);
+export const deleteAccount = () => api.delete('/patient/remove/', true);

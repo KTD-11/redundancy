@@ -5,13 +5,71 @@
 import React from 'react';
 import './AboutUsPage.css';
 
-const TEAM_MEMBERS = Array.from({ length: 9 }, (_, i) => ({
-  id: i + 1,
-  name: `Team Member ${i + 1}`,
-  role: 'Software Engineer',
-  contribution: 'Key contribution details will be added here soon.',
-  photoUrl: `https://ui-avatars.com/api/?name=Member+${i + 1}&background=random&color=fff&size=150`,
-}));
+const TEAM_MEMBERS = [
+  {
+    id: 1,
+    name: 'Ahmed Atta',
+    role: 'Leader',
+    contribution: 'lead the development of Syncare, overseeing the frontend experience and ensuring a seamless and intuitive user interface. In parallel, I independently developed the face recognition model, handling its design and implementation as a separate system to enhance identity verification and overall system efficiency.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image1.jpg`,
+  },
+  {
+    id: 2,
+    name: 'Ahmed (KTD) Khaled',
+    role: 'Backend Architect & Developer',
+    contribution: "I architect, build, and maintain Syncare's high-performance backend, ensuring patient data remains heavily encrypted and flawlessly accessible.",
+    photoUrl: `${process.env.PUBLIC_URL}/images/image2.jpg`,
+  },
+  {
+    id: 3,
+    name: 'Esraa Esmat',
+    role: 'Member',
+    contribution: 'Key contribution details will be added here soon.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image3.jpg`, // missing, needs fallback or addition later
+  },
+  {
+    id: 4,
+    name: 'Ahmed Adel',
+    role: 'Member',
+    contribution: 'Key contribution details will be added here soon.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image4.jpg`,
+  },
+  {
+    id: 5,
+    name: 'Khaled Ladham',
+    role: 'Member',
+    contribution: 'Key contribution details will be added here soon.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image5.jpg`,
+  },
+  {
+    id: 6,
+    name: 'Ahmed Hani',
+    role: 'Member',
+    contribution: 'Key contribution details will be added here soon.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image6.jpg`, // missing
+  },
+  {
+    id: 7,
+    name: 'Sama Mohammed',
+    role: 'Member',
+    contribution: 'Key contribution details will be added here soon.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image7.jpg`, // missing
+  },
+  {
+    id: 8,
+    name: 'Shrouk Mohamed',
+    role: 'Member',
+    contribution: 'Key contribution details will be added here soon.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image8.jpg`, // missing
+  },
+  {
+    id: 9,
+    name: 'Sajid Almanakhly',
+    role: 'Member',
+    contribution: 'Key contribution details will be added here soon.',
+    photoUrl: `${process.env.PUBLIC_URL}/images/image9.jpg`,
+  }
+];
 
 const AboutUsPage = () => {
   return (

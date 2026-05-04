@@ -10,7 +10,7 @@ import Button from './Button';
 import './Navbar.css';
 
 const Navbar = ({ theme, onToggleTheme }) => {
-  const { isLoggedIn, user, logout } = useAuth();
+  const { isLoggedIn, isDoctor, user, logout } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,7 +33,7 @@ const Navbar = ({ theme, onToggleTheme }) => {
         { to: '/appointments', label: t('myAppointments') },
       ]
     : [
-        { to: '/', label: t('home') },
+        { to: '/', label: t('home') || 'Home' },
         { to: '/about', label: 'About Us' },
         { to: '/map', label: '3D Map' },
         { to: '/login', label: t('signIn') },
@@ -44,7 +44,7 @@ const Navbar = ({ theme, onToggleTheme }) => {
     <>
       <nav className="sc-nav">
         <Link to="/" className="sc-nav__brand" onClick={() => setDrawerOpen(false)}>
-          <img src="/logo.png" alt="SynCare Logo" className="sc-nav__logo-img" style={{ height: '40px', width: 'auto', marginRight: '10px' }} />
+          <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="SynCare Logo" className="sc-nav__logo-img" style={{ height: '40px', width: 'auto', marginRight: '10px' }} />
           <span className="sc-nav__logo-text">
             Syn<span>Care</span>
           </span>
@@ -67,7 +67,7 @@ const Navbar = ({ theme, onToggleTheme }) => {
         <div className="sc-nav__controls">
           {isLoggedIn && (
             <span className="sc-nav__user">
-              👤 {user?.patient_name || t('patient')}
+              👤 {isDoctor ? `Dr. ${user?.doctor_name}` : (user?.patient_name || t('patient'))}
             </span>
           )}
 

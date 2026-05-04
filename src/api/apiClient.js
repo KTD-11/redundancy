@@ -105,6 +105,13 @@ export const api = {
       auth
     ),
 
+  patch: (endpoint, body, auth = false) =>
+    request(
+      endpoint,
+      { method: 'PATCH', body: body ? JSON.stringify(body) : null },
+      auth
+    ),
+
   delete: (endpoint, auth = true) =>
     request(endpoint, { method: 'DELETE' }, auth),
 };

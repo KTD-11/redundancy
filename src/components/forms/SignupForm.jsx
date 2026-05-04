@@ -173,7 +173,10 @@ const SignupForm = () => {
           type="password"
           placeholder="Min 10 characters"
           value={values.password}
-          onChange={handleChange}
+          onChange={(e) => {
+            e.target.value = e.target.value.replace(/[\u0600-\u06FF\u0750-\u077F]/g, '');
+            handleChange(e);
+          }}
           onBlur={handleBlur}
           error={errors.password}
           touched={touched.password}

@@ -1,5 +1,6 @@
 {
   "name": "syncare-frontend",
+  "homepage": "https://asd33366544.github.io/frontend_checkinsystem",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -14,7 +15,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [

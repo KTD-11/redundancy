@@ -37,10 +37,13 @@ export const validateGovId = (value) => {
   return null;
 };
 
-/** password: min 10 characters */
+/** password: min 10 characters, no arabic */
 export const validatePassword = (value) => {
   if (required(value)) return 'Password is required.';
-  if (String(value).length < 10)
+  const str = String(value);
+  if (/[\u0600-\u06FF\u0750-\u077F]/.test(str))
+    return 'Password cannot contain Arabic characters.';
+  if (str.length < 10)
     return 'Password must be at least 10 characters.';
   return null;
 };

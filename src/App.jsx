@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -15,13 +15,21 @@ import HomePage              from './pages/HomePage';
 import LoginPage             from './pages/LoginPage';
 import SignupPage            from './pages/SignupPage';
 import DashboardPage         from './pages/DashboardPage';
+import DoctorDashboardPage   from './pages/DoctorDashboardPage';
 import BookAppointmentPage   from './pages/BookAppointmentPage';
 import AppointmentsPage      from './pages/AppointmentsPage';
 import NotFoundPage          from './pages/NotFoundPage';
 import AboutUsPage           from './pages/AboutUsPage';
 import MapPage               from './pages/MapPage';
 
+import { useAuth } from './context/AuthContext';
+
 import './global.css';
+
+const DashboardWrapper = () => {
+  const { isDoctor } = useAuth();
+  return isDoctor ? <DoctorDashboardPage /> : <DashboardPage />;
+};
 
 const App = () => {
   const [theme, setTheme] = useState(
@@ -37,7 +45,7 @@ const App = () => {
     setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <LanguageProvider>
         <AuthProvider>
           <Navbar theme={theme} onToggleTheme={toggleTheme} />
@@ -54,7 +62,7 @@ const App = () => {
             {/* Protected */}
             <Route
               path="/dashboard"
-              element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
+              element={<ProtectedRoute><DashboardWrapper /></ProtectedRoute>}
             />
             <Route
               path="/appointments"
@@ -75,7 +83,7 @@ const App = () => {
         </main>
       </AuthProvider>
       </LanguageProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 

@@ -1,5 +1,7 @@
 # SynCare Frontend
 
+🚀 **Live Website (GitHub Pages)**: [https://asd33366544.github.io/frontend_checkinsystem](https://asd33366544.github.io/frontend_checkinsystem)
+
 A modular React frontend for the SynCare medical appointment booking system.
 
 ## 📁 Project Structure
