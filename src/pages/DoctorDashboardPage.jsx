@@ -11,12 +11,12 @@ import Loader from '../components/ui/Loader';
 import './DashboardPage.css'; // Reuse existing dashboard styles
 
 const DoctorDashboardPage = () => {
-  const { user, logout } = useAuth();
-  
+  const { user } = useAuth();
+
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
@@ -138,10 +138,10 @@ const DoctorDashboardPage = () => {
               {patients.map(p => (
                 <div key={p.appointment_id} className="dashboard__info-card" style={{ padding: '20px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div><span style={{color: 'var(--muted)', fontSize: '0.85rem'}}>Patient</span><br/><strong>{p.patient_name}</strong></div>
-                    <div><span style={{color: 'var(--muted)', fontSize: '0.85rem'}}>Date & Time</span><br/>{p.appointment_date} at {p.appointment_time}</div>
-                    <div><span style={{color: 'var(--muted)', fontSize: '0.85rem'}}>Age / Gender</span><br/>{p.patient_age} / {p.patient_gender === 'M' ? 'Male' : 'Female'}</div>
-                    <div><span style={{color: 'var(--muted)', fontSize: '0.85rem'}}>Status</span><br/>
+                    <div><span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Patient</span><br /><strong>{p.patient_name}</strong></div>
+                    <div><span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Date & Time</span><br />{p.appointment_date} at {p.appointment_time}</div>
+                    <div><span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Age / Gender</span><br />{p.patient_age} / {p.patient_gender === 'M' ? 'Male' : 'Female'}</div>
+                    <div><span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Status</span><br />
                       <span style={{
                         display: 'inline-block', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem',
                         backgroundColor: p.status === 1 ? 'var(--soft)' : 'var(--soft)',
@@ -152,16 +152,16 @@ const DoctorDashboardPage = () => {
                     </div>
                   </div>
                   <div style={{ marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <Button 
-                      variant={p.status === 1 ? 'outline' : 'primary'} 
-                      size="sm" 
+                    <Button
+                      variant={p.status === 1 ? 'outline' : 'primary'}
+                      size="sm"
                       onClick={() => handleToggleStatus(p.appointment_id)}
                     >
                       {p.status === 1 ? 'Mark Pending' : 'Mark Complete'}
                     </Button>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => openReportModal(p.appointment_id)}
                     >
                       Upload Report
@@ -177,12 +177,12 @@ const DoctorDashboardPage = () => {
       {/* Report Modal */}
       {reportModalOpen && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, 
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
         }}>
           <div style={{
-            backgroundColor: 'var(--surface)', width: '100%', maxWidth: '500px', 
+            backgroundColor: 'var(--surface)', width: '100%', maxWidth: '500px',
             borderRadius: '12px', padding: '30px', boxShadow: 'var(--shadow)'
           }}>
             <h2 style={{ marginBottom: '5px', fontSize: '1.5rem', color: 'var(--text)' }}>Upload Clinical Report</h2>
@@ -197,11 +197,11 @@ const DoctorDashboardPage = () => {
               <form onSubmit={handleSubmitReport}>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Report Type</label>
-                  <select 
-                    value={reportType} 
+                  <select
+                    value={reportType}
                     onChange={e => setReportType(e.target.value)}
                     style={{
-                      width: '100%', padding: '12px', borderRadius: '8px', 
+                      width: '100%', padding: '12px', borderRadius: '8px',
                       border: '1px solid var(--border)', backgroundColor: 'var(--bg)',
                       color: 'var(--text)', fontSize: '1rem'
                     }}
@@ -214,13 +214,13 @@ const DoctorDashboardPage = () => {
 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Report Details</label>
-                  <textarea 
+                  <textarea
                     value={reportBody}
                     onChange={e => setReportBody(e.target.value)}
                     rows={5}
                     placeholder="Enter the detailed report..."
                     style={{
-                      width: '100%', padding: '12px', borderRadius: '8px', 
+                      width: '100%', padding: '12px', borderRadius: '8px',
                       border: '1px solid var(--border)', backgroundColor: 'var(--bg)',
                       color: 'var(--text)', fontSize: '1rem', resize: 'vertical'
                     }}

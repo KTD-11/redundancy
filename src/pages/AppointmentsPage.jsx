@@ -11,6 +11,7 @@ import { getClinicalReport } from '../api/appointments';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
 import Loader from '../components/ui/Loader';
+import ClinicalReportModal from '../components/ui/ClinicalReportModal';
 import './InnerPage.css';
 import './AppointmentsPage.css';
 
@@ -60,6 +61,7 @@ const AppointmentsPage = () => {
   // Report Modal State
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportFetchError, setReportFetchError] = useState(null);
 
@@ -104,14 +106,15 @@ const AppointmentsPage = () => {
     }
   };
 
-  const handleViewReport = async (appointmentId) => {
+  const handleViewReport = async (appointment) => {
     setReportModalOpen(true);
     setReportLoading(true);
     setReportFetchError(null);
     setSelectedReport(null);
+    setSelectedAppointment(appointment);
 
     try {
-      const res = await getClinicalReport(appointmentId);
+      const res = await getClinicalReport(appointment.appointment_id);
       if (res && res.data) {
         setSelectedReport(res.data);
       } else {
@@ -119,9 +122,9 @@ const AppointmentsPage = () => {
       }
     } catch (err) {
       if (err.message && err.message.toLowerCase().includes('no report found')) {
-         setReportFetchError('No report available yet.');
+        setReportFetchError('No report available yet.');
       } else {
-         setReportFetchError(err.message || 'Failed to fetch report.');
+        setReportFetchError(err.message || 'Failed to fetch report.');
       }
     } finally {
       setReportLoading(false);
@@ -171,11 +174,11 @@ const AppointmentsPage = () => {
                     >
                       Cancel
                     </Button>
-                    
+
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => handleViewReport(appointment.appointment_id)}
+                      onClick={() => handleViewReport(appointment)}
                     >
                       View Report
                     </Button>
@@ -246,51 +249,14 @@ const AppointmentsPage = () => {
       </div>
 
       {/* Report View Modal */}
-      {reportModalOpen && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, 
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-        }}>
-          <div style={{
-            backgroundColor: 'var(--surface)', width: '100%', maxWidth: '500px', 
-            borderRadius: '12px', padding: '30px', boxShadow: 'var(--shadow)',
-            maxHeight: '90vh', overflowY: 'auto'
-          }}>
-            <h2 style={{ marginBottom: '15px', fontSize: '1.5rem', color: 'var(--text)' }}>Clinical Report</h2>
-
-            {reportLoading && <Loader size="sm" label="Loading report..." />}
-            
-            {!reportLoading && reportFetchError && (
-              <Alert type={reportFetchError === 'No report available yet.' ? 'info' : 'error'} message={reportFetchError} />
-            )}
-
-            {!reportLoading && selectedReport && (
-              <div>
-                <div style={{ marginBottom: '15px' }}>
-                  <strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '5px' }}>Report Type</strong>
-                  <div style={{ fontSize: '1.1rem', color: 'var(--accent)' }}>{selectedReport.reportType}</div>
-                </div>
-                <div style={{ marginBottom: '25px' }}>
-                  <strong style={{ display: 'block', fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '5px' }}>Details</strong>
-                  <div style={{ 
-                    padding: '15px', backgroundColor: 'var(--bg)', borderRadius: '8px',
-                    whiteSpace: 'pre-wrap', lineHeight: '1.6', color: 'var(--text)', border: '1px solid var(--border)'
-                  }}>
-                    {selectedReport.reportBody}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <Button type="button" variant="primary" onClick={() => setReportModalOpen(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ClinicalReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        appointmentData={selectedAppointment}
+        reportData={selectedReport}
+        loading={reportLoading}
+        error={reportFetchError}
+      />
     </div>
   );
 };
