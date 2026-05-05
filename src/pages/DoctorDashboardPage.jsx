@@ -243,5 +243,4 @@ const DoctorDashboardPage = () => {
     </div>
   );
 };
-
 export default DoctorDashboardPage;
