@@ -156,7 +156,8 @@
 .sc-nav__drawer-signout    { color: var(--danger) !important; }
 
 @media (max-width: 768px) {
-  .sc-nav__links      { display: none; }
-  .sc-nav__hamburger  { display: flex; }
-  .sc-nav__user       { display: none; }
+  .sc-nav__links       { display: none; }
+  .sc-nav__hamburger   { display: flex; }
+  .sc-nav__user        { display: none; }
+  .sc-nav__cta-desktop { display: none; }
 }

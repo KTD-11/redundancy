@@ -89,11 +89,11 @@ const Navbar = ({ theme, onToggleTheme }) => {
           />
 
           {isLoggedIn ? (
-            <Button variant="danger" size="sm" onClick={handleLogout}>
+            <Button variant="danger" size="sm" onClick={handleLogout} className="sc-nav__cta-desktop">
               {t('signOut')}
             </Button>
           ) : (
-            <Link to="/signup">
+            <Link to="/signup" className="sc-nav__cta-desktop">
               <Button variant="primary" size="sm" className="sc-nav__cta">
                 {t('getStarted')}
               </Button>
