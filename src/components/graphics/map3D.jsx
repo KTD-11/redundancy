@@ -113,7 +113,7 @@ const DEPARTMENT_PATHS = {
 // ---------------------------------------------------------------------------
 
 export default function Map3D({ selectedDepartment, onNodesLoaded }) {
-  const { scene, nodes } = useGLTF('/ThreeDModels/hospIn.gltf');
+  const { scene, nodes } = useGLTF(`${process.env.PUBLIC_URL}/ThreeDModels/hospIn.gltf`);
   const controlsRef = useRef();
   const isCameraTransitioning = useRef(false);
   const transitionTime = useRef(0);
