@@ -305,7 +305,7 @@ export default function Map3D({ selectedDepartment, onNodesLoaded }) {
         targetPosition.current.set(0, 3.5, 7);
       }
     }
-  }, [scene, selectedDepartment]);
+  }, [scene, selectedDepartment, meshRoles]);
 
   // --- ANIMATION LOOP ---
   useFrame((state, delta) => {
