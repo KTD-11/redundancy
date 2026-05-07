@@ -484,8 +484,9 @@ const ChatbotPage = () => {
         break;
       }
       case 'await_time': {
-        // User typed a time instead of clicking
-        handlePickTime(t);
+        // Try to extract a clean time from text (especially voice input)
+        const parsedTime = detectTime(t);
+        handlePickTime(parsedTime || t);
         break;
       }
       case 'await_confirm': {
@@ -520,10 +521,50 @@ const ChatbotPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botReply, selectClinic, handlePickTime, handleConfirm]);
 
-  /* ── Smart Voice Processing ── */
+  /* ── Smart Voice Processing (step-aware) ── */
   const processVoiceInput = useCallback(async (text) => {
     if (!text || !text.trim()) return;
     const t = text.trim();
+    const currentStep = stepRef.current;
+
+    // ── Step-aware voice handling ──
+    if (currentStep === 'await_time') {
+      const time = detectTime(t);
+      if (time) {
+        handlePickTime(time);
+      } else {
+        addUserMsg(`🎤 ${t}`);
+        await botReply('مش فاهم الوقت 😕 اختار من الأزرار أو قول مثلاً: الساعة تسعة', 500);
+      }
+      return;
+    }
+    if (currentStep === 'await_clinic') {
+      const clinic = detectClinic(t);
+      if (clinic) {
+        selectClinic(clinic.key, clinic.ar, clinic.en);
+      } else {
+        addUserMsg(`🎤 ${t}`);
+        await botReply('مش لاقيش العيادة دي 😕 اختار من القايمة.', 500);
+      }
+      return;
+    }
+    if (currentStep === 'await_confirm') {
+      if (/أيوه|ايوه|نعم|yes|اكيد|تمام|ok|تأكيد|confirm|أه|اه|ماشي/i.test(t)) {
+        handleConfirm(true);
+      } else if (/لا|no|الغ|cancel|إلغاء/i.test(t)) {
+        handleConfirm(false);
+      } else {
+        addUserMsg(`🎤 ${t}`);
+        await botReply('قول <strong>"أيوه"</strong> للتأكيد أو <strong>"لا"</strong> للإلغاء', 500);
+      }
+      return;
+    }
+    if (currentStep === 'await_cancel') {
+      processMessage(t);
+      return;
+    }
+
+    // ── Idle state: smart intent detection ──
     const intent = detectIntent(t);
     const clinic = detectClinic(t);
     const date = detectDate(t);
@@ -565,10 +606,15 @@ const ChatbotPage = () => {
       speak('اختار تأكيد الحجز أو إلغاء');
       return;
     }
-    // Partial or other — fall through to normal
+    if (intent === 'book' && clinic) {
+      // Clinic detected but missing date/time → start flow from clinic
+      selectClinic(clinic.key, clinic.ar, clinic.en);
+      return;
+    }
+    // Fallback to normal processing
     processMessage(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [processMessage, botReply, speak]);
+  }, [processMessage, botReply, speak, handlePickTime, handleConfirm, selectClinic]);
 
   // Process voice transcript when recording ends
   useEffect(() => {
