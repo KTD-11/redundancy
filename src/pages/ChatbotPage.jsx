@@ -97,6 +97,18 @@ const TIMES = [
 
 const MEDICAL_KW = ['صداع','ألم','حرارة','كحة','إسهال','دوخة','حساسية','ضغط','سكر','headache','pain','fever','nausea'];
 
+const VOICE_PHRASES = [
+  { key:'welcome',   ar:'مرحبا، أنا عطعوط مساعدك الذكي' },
+  { key:'booked',    ar:'تم الحجز بنجاح' },
+  { key:'cancelled', ar:'تم إلغاء الموعد' },
+  { key:'appts',     ar:'دي مواعيدك الحالية' },
+  { key:'login',     ar:'محتاج تسجل دخول الأول' },
+  { key:'time',      ar:'اختار الساعة المناسبة' },
+  { key:'clinic',    ar:'اختار العيادة' },
+  { key:'confirm',   ar:'اختار تأكيد الحجز أو إلغاء' },
+  { key:'cancel_id', ar:'تمام، اكتب رقم الحجز' },
+];
+
 // eslint-disable-next-line no-unused-vars
 const CONFIG = {
   API_BASE: 'https://syncare-api.onrender.com',
@@ -160,10 +172,19 @@ const ChatbotPage = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [playingMsgIdx, setPlayingMsgIdx] = useState(-1);
   const [showOverlay, setShowOverlay] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [showVoicePanel, setShowVoicePanel] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [recPhraseKey, setRecPhraseKey] = useState(null);
+  const [customVoices, setCustomVoices] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('syncare_custom_voices') || '{}'); } catch { return {}; }
+  });
   const recognitionRef = useRef(null);
   const waveCanvasRef = useRef(null);
   const audioCtxRef = useRef(null);
   const animFrameRef = useRef(null);
+  const phraseRecorderRef = useRef(null);
+  const currentAudioRef = useRef(null);
 
   const stepRef = useRef('idle');
   const bookingRef = useRef({});
@@ -189,19 +210,41 @@ const ChatbotPage = () => {
   // eslint-disable-next-line no-unused-vars
   const showToastMsg = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
-  /* ── TTS Engine ── */
+  /* ── TTS Engine (custom voice priority) ── */
   const speak = useCallback((text) => {
-    if (!ttsEnabled || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    if (!ttsEnabled) return;
+    // Stop any current audio
+    if (currentAudioRef.current) { currentAudioRef.current.pause(); currentAudioRef.current = null; }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+
     const clean = stripHtml(text).replace(/[✅❌📅📋🎉🌸⚠️🏥🩺🗑️➕💬]/g, '').trim();
     if (!clean || clean.length < 3) return;
+
+    // Check for matching custom voice recording
+    const saved = JSON.parse(localStorage.getItem('syncare_custom_voices') || '{}');
+    const match = VOICE_PHRASES.find(p => clean.includes(p.ar) || p.ar.includes(clean));
+    if (match && saved[match.key]) {
+      const audio = new Audio(saved[match.key]);
+      currentAudioRef.current = audio;
+      audio.onplay = () => setIsSpeaking(true);
+      audio.onended = () => { setIsSpeaking(false); setPlayingMsgIdx(-1); currentAudioRef.current = null; };
+      audio.onerror = () => { setIsSpeaking(false); setPlayingMsgIdx(-1); currentAudioRef.current = null; };
+      audio.play().catch(() => {});
+      return;
+    }
+
+    // Fallback to browser TTS
+    if (!window.speechSynthesis) return;
     const utter = new SpeechSynthesisUtterance(clean);
     utter.lang = 'ar-SA';
-    utter.rate = 0.95;
-    utter.pitch = 1.0;
+    utter.rate = 0.9;
+    utter.pitch = 0.85;
     const voices = window.speechSynthesis.getVoices();
-    const arVoice = voices.find(v => v.lang.startsWith('ar'));
-    if (arVoice) utter.voice = arVoice;
+    // Prefer male Arabic voice
+    const arMale = voices.find(v => v.lang.startsWith('ar') && /male|رجل/i.test(v.name) && !/female/i.test(v.name));
+    const arAny = voices.find(v => v.lang.startsWith('ar'));
+    if (arMale) utter.voice = arMale;
+    else if (arAny) utter.voice = arAny;
     utter.onstart = () => setIsSpeaking(true);
     utter.onend = () => { setIsSpeaking(false); setPlayingMsgIdx(-1); };
     utter.onerror = () => { setIsSpeaking(false); setPlayingMsgIdx(-1); };
@@ -215,9 +258,63 @@ const ChatbotPage = () => {
   }, [isSpeaking, speak]);
 
   const stopTts = useCallback(() => {
-    window.speechSynthesis.cancel();
+    if (currentAudioRef.current) { currentAudioRef.current.pause(); currentAudioRef.current = null; }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
     setPlayingMsgIdx(-1);
+  }, []);
+
+  /* ── Phrase Recording (record your own voice) ── */
+  // eslint-disable-next-line no-unused-vars
+  const startPhraseRec = useCallback((phraseKey) => {
+    setRecPhraseKey(phraseKey);
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' });
+      const chunks = [];
+      mr.ondataavailable = e => chunks.push(e.data);
+      mr.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result;
+          const updated = { ...customVoices, [phraseKey]: dataUrl };
+          setCustomVoices(updated);
+          localStorage.setItem('syncare_custom_voices', JSON.stringify(updated));
+          setRecPhraseKey(null);
+        };
+        reader.readAsDataURL(blob);
+      };
+      phraseRecorderRef.current = mr;
+      mr.start();
+    }).catch(() => {
+      setRecPhraseKey(null);
+      showToastMsg('مش قادر أوصل للمايك');
+    });
+  }, [customVoices]);
+
+  // eslint-disable-next-line no-unused-vars
+  const stopPhraseRec = useCallback(() => {
+    if (phraseRecorderRef.current && phraseRecorderRef.current.state === 'recording') {
+      phraseRecorderRef.current.stop();
+    }
+  }, []);
+
+  // eslint-disable-next-line no-unused-vars
+  const deletePhraseRec = useCallback((phraseKey) => {
+    const updated = { ...customVoices };
+    delete updated[phraseKey];
+    setCustomVoices(updated);
+    localStorage.setItem('syncare_custom_voices', JSON.stringify(updated));
+  }, [customVoices]);
+
+  // eslint-disable-next-line no-unused-vars
+  const playPhraseRec = useCallback((phraseKey) => {
+    const saved = JSON.parse(localStorage.getItem('syncare_custom_voices') || '{}');
+    if (saved[phraseKey]) {
+      const audio = new Audio(saved[phraseKey]);
+      audio.play().catch(() => {});
+    }
   }, []);
 
   /* ── STT Engine ── */
