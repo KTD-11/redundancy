@@ -6,6 +6,9 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ChatbotPage.css';
 
+const AVATAR = `${process.env.PUBLIC_URL}/bot-avatar.jpg`;
+const avatarStyle = { width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' };
+
 /* ── CONSTANTS ── */
 const CLINICS = [
   { key:'adult_general', ar:'الباطنة العامة', en:'General Medicine', icon:'🩺' },
@@ -282,7 +285,7 @@ const ChatbotPage = () => {
             <div className="cb-logo-text">Syncare</div>
           </div>
           <div className="cb-profile-card">
-            <div className="cb-profile-avatar">👤</div>
+            <div className="cb-profile-avatar"><img src={AVATAR} alt="avatar" style={avatarStyle} /></div>
             <div className="cb-profile-name">مستخدم Syncare</div>
             <div className="cb-profile-role">مريض</div>
             <div className="cb-profile-badge"><div className="cb-badge-dot"></div>متصل الآن</div>
@@ -303,7 +306,7 @@ const ChatbotPage = () => {
         {/* MAIN CHAT */}
         <div className="cb-main">
           <div className="cb-chat-header">
-            <div className="cb-hdr-avatar">🤖</div>
+            <div className="cb-hdr-avatar"><img src={AVATAR} alt="عطعوط" style={avatarStyle} /></div>
             <div className="cb-hdr-info">
               <div className="cb-name">عطعوط<span className="cb-dot-sep">•</span>Syncare</div>
               <div className="cb-hdr-status"><div className="cb-status-dot"></div>متصل الآن</div>
@@ -318,7 +321,7 @@ const ChatbotPage = () => {
             <div className="cb-date-chip">{dateStr}</div>
             {messages.map((msg, i) => (
               <div key={i} className={`cb-msg ${msg.type}`}>
-                <div className="cb-msg-av">{msg.type === 'bot' ? '🤖' : '👤'}</div>
+                <div className="cb-msg-av"><img src={AVATAR} alt="av" style={avatarStyle} /></div>
                 <div className="cb-msg-body">
                   <div className="cb-bubble" dangerouslySetInnerHTML={{ __html: msg.type === 'bot' ? msg.html : msg.text }}></div>
                   <div className="cb-msg-meta">{msg.time}</div>
@@ -327,7 +330,7 @@ const ChatbotPage = () => {
             ))}
             {/* Typing */}
             <div className={`cb-typing ${typing ? 'show' : ''}`}>
-              <div className="cb-msg-av">🤖</div>
+              <div className="cb-msg-av"><img src={AVATAR} alt="typing" style={avatarStyle} /></div>
               <div className="cb-t-bubble"><div className="cb-td"></div><div className="cb-td"></div><div className="cb-td"></div></div>
             </div>
           </div>
