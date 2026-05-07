@@ -29,6 +29,7 @@ const Navbar = ({ theme, onToggleTheme }) => {
         { to: '/dashboard', label: t('dashboard') },
         { to: '/about', label: 'About Us' },
         { to: '/map', label: '3D Map' },
+        { to: '/chat', label: '🤖 عطعوط' },
         { to: '/appointments/book', label: t('bookAppointment') },
         { to: '/appointments', label: t('myAppointments') },
       ]
@@ -36,6 +37,7 @@ const Navbar = ({ theme, onToggleTheme }) => {
         { to: '/', label: t('home') || 'Home' },
         { to: '/about', label: 'About Us' },
         { to: '/map', label: '3D Map' },
+        { to: '/chat', label: '🤖 عطعوط' },
         { to: '/login', label: t('signIn') },
         { to: '/signup', label: t('register') },
       ];

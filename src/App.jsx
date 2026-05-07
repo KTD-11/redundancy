@@ -21,6 +21,7 @@ import AppointmentsPage      from './pages/AppointmentsPage';
 import NotFoundPage          from './pages/NotFoundPage';
 import AboutUsPage           from './pages/AboutUsPage';
 import MapPage               from './pages/MapPage';
+import ChatbotPage           from './pages/ChatbotPage';
 
 import { useAuth } from './context/AuthContext';
 
@@ -56,6 +57,7 @@ const App = () => {
             <Route path="/"       element={<HomePage />} />
             <Route path="/about"  element={<AboutUsPage />} />
             <Route path="/map"    element={<MapPage />} />
+            <Route path="/chat"   element={<ChatbotPage />} />
             <Route path="/login"  element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
 
