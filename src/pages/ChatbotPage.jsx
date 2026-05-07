@@ -1,12 +1,50 @@
 // ═══════════════════════════════════════════
 //  SYNCARE — ChatbotPage.jsx
-//  عطعوط - AI Assistant Chatbot
+//  عطعوط - AI Assistant Chatbot + Voice Support
 // ═══════════════════════════════════════════
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { bookAppointment, fetchAppointments, cancelAppointment } from '../api/appointments';
 import './ChatbotPage.css';
+
+/* ── Voice Detection Helpers ── */
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function detectTime(text) {
+  const t = text.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  const m = t.match(/(?:الساع[ةه]|ساع[ةه])\s*(\d{1,2})(?:[:.](\d{2}))?/i)
+         || t.match(/(\d{1,2})(?:[:.](\d{2}))?\s*(?:صباح|مساء|ص|م)?/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? m[2] : '00';
+  if (/مساء|م/.test(t) && h < 12) h += 12;
+  if (h < 8 || h > 12) return null;
+  const ts = `${String(h).padStart(2,'0')}:${min}`;
+  return ['08:00','08:15','08:30','08:45','09:00','09:15','09:30','09:45','10:00','10:15','10:30','10:45','11:00','11:15','11:30','11:45','12:00'].includes(ts) ? ts : `${String(h).padStart(2,'0')}:00`;
+}
+
+function detectDate(text) {
+  const days = [];
+  for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() + i); days.push(d); }
+  if (/النهارد[ةه]|النهاردا|اليوم|today/i.test(text)) return { date: days[0].toISOString().split('T')[0], label: 'النهارده' };
+  if (/بكر[ةه]|بكرا|غد[اً]?|tomorrow/i.test(text)) return { date: days[1].toISOString().split('T')[0], label: 'بكره' };
+  if (/بعد\s*بكر[ةه]|بعد\s*بكرا/i.test(text)) return { date: days[2].toISOString().split('T')[0], label: 'بعد بكره' };
+  return null;
+}
+
+function detectIntent(text) {
+  if (/إلغاء|الغاء|الغي|ألغي|cancel/i.test(text)) return 'cancel';
+  if (/مواعيدي|مواعيد[يى]|عايز\s*[اأ]شوف|show.*appointment/i.test(text) && !/احجز|book/i.test(text)) return 'view';
+  if (/احجز|اجوز|حجز|موعد|book/i.test(text)) return 'book';
+  return null;
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
 
 const AVATAR = `${process.env.PUBLIC_URL}/bot-avatar.jpg`;
 const avatarStyle = { width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' };
@@ -92,10 +130,23 @@ const ChatbotPage = () => {
   const [step, setStep] = useState('idle');
   const [booking, setBooking] = useState({});
 
+  /* ── Voice State ── */
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [ttsEnabled, setTtsEnabled] = useState(() => localStorage.getItem('syncare_tts') !== 'off');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [playingMsgIdx, setPlayingMsgIdx] = useState(-1);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const recognitionRef = useRef(null);
+  const waveCanvasRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const animFrameRef = useRef(null);
+
   const stepRef = useRef('idle');
   const bookingRef = useRef({});
   useEffect(() => { stepRef.current = step; }, [step]);
   useEffect(() => { bookingRef.current = booking; }, [booking]);
+  useEffect(() => { localStorage.setItem('syncare_tts', ttsEnabled ? 'on' : 'off'); }, [ttsEnabled]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -114,6 +165,122 @@ const ChatbotPage = () => {
 
   // eslint-disable-next-line no-unused-vars
   const showToastMsg = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+
+  /* ── TTS Engine ── */
+  const speak = useCallback((text) => {
+    if (!ttsEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const clean = stripHtml(text).replace(/[✅❌📅📋🎉🌸⚠️🏥🩺🗑️➕💬]/g, '').trim();
+    if (!clean || clean.length < 3) return;
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.lang = 'ar-SA';
+    utter.rate = 0.95;
+    utter.pitch = 1.0;
+    const voices = window.speechSynthesis.getVoices();
+    const arVoice = voices.find(v => v.lang.startsWith('ar'));
+    if (arVoice) utter.voice = arVoice;
+    utter.onstart = () => setIsSpeaking(true);
+    utter.onend = () => { setIsSpeaking(false); setPlayingMsgIdx(-1); };
+    utter.onerror = () => { setIsSpeaking(false); setPlayingMsgIdx(-1); };
+    window.speechSynthesis.speak(utter);
+  }, [ttsEnabled]);
+
+  const speakMsg = useCallback((text, idx) => {
+    if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); setPlayingMsgIdx(-1); return; }
+    setPlayingMsgIdx(idx);
+    speak(text);
+  }, [isSpeaking, speak]);
+
+  const stopTts = useCallback(() => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+    setPlayingMsgIdx(-1);
+  }, []);
+
+  /* ── STT Engine ── */
+  const drawWave = useCallback((analyser, canvas) => {
+    if (!analyser || !canvas) return;
+    const ctx = canvas.getContext('2d');
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    const draw = () => {
+      animFrameRef.current = requestAnimationFrame(draw);
+      analyser.getByteTimeDomainData(data);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#48cae4';
+      ctx.shadowColor = '#00b4d8';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      const sliceW = canvas.width / bufLen;
+      let x = 0;
+      for (let i = 0; i < bufLen; i++) {
+        const v = data[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        x += sliceW;
+      }
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    };
+    draw();
+  }, []);
+
+  const startRecording = useCallback(() => {
+    if (!SpeechRecognition) { showToastMsg('المتصفح مش بيدعم التعرف على الصوت'); return; }
+    const rec = new SpeechRecognition();
+    rec.lang = 'ar-EG';
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    recognitionRef.current = rec;
+    setVoiceTranscript('');
+    setIsRecording(true);
+    setShowOverlay(true);
+
+    // Audio context for waveform
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = actx;
+      const src = actx.createMediaStreamSource(stream);
+      const analyser = actx.createAnalyser();
+      analyser.fftSize = 256;
+      src.connect(analyser);
+      setTimeout(() => {
+        const canvas = waveCanvasRef.current;
+        if (canvas) drawWave(analyser, canvas);
+      }, 100);
+
+      rec.onresult = (e) => {
+        let transcript = '';
+        for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+        setVoiceTranscript(transcript);
+      };
+      rec.onend = () => {
+        setIsRecording(false);
+        setShowOverlay(false);
+        stream.getTracks().forEach(t => t.stop());
+        if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      };
+      rec.onerror = () => {
+        setIsRecording(false);
+        setShowOverlay(false);
+        stream.getTracks().forEach(t => t.stop());
+        if (audioCtxRef.current) { audioCtxRef.current.close(); audioCtxRef.current = null; }
+      };
+      rec.start();
+    }).catch(() => {
+      setIsRecording(false);
+      setShowOverlay(false);
+      showToastMsg('مش قادر أوصل للمايك - اسمح بالوصول');
+    });
+    // eslint-disable-next-line
+  }, [drawWave]);
+
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) { recognitionRef.current.stop(); }
+  }, []);
 
   const addBotMsg = useCallback((html) => {
     setMessages(prev => [...prev, { type:'bot', html, time: getTime() }]);
@@ -232,6 +399,7 @@ const ChatbotPage = () => {
     if (!t) return;
     addUserMsg(t);
     const currentStep = stepRef.current;
+    // eslint-disable-next-line no-unused-vars
     const currentBooking = bookingRef.current;
 
     if (MEDICAL_KW.some(k => t.toLowerCase().includes(k)) && currentStep === 'idle') {
@@ -326,7 +494,81 @@ const ChatbotPage = () => {
         setStep('idle'); stepRef.current = 'idle';
         await botReply('حاجة غلط 🤔 اكتب <strong>"احجز موعد"</strong> أو اضغط أحد الأزرار.');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [botReply, selectClinic, handlePickTime, handleConfirm]);
+
+  /* ── Smart Voice Processing ── */
+  const processVoiceInput = useCallback(async (text) => {
+    if (!text || !text.trim()) return;
+    const t = text.trim();
+    const intent = detectIntent(t);
+    const clinic = detectClinic(t);
+    const date = detectDate(t);
+    const time = detectTime(t);
+
+    if (intent === 'cancel') {
+      if (clinic) {
+        addUserMsg(`🎤 ${t}`);
+        await botReply(`فهمت! عايز تلغي موعد ${clinic.ar}\nاكتب رقم الحجز اللي عايز تلغيه 🗑️`, 600);
+        setStep('await_cancel'); stepRef.current = 'await_cancel';
+        speak('تمام، اكتب رقم الحجز');
+      } else {
+        processMessage(t);
+      }
+      return;
+    }
+    if (intent === 'view') { processMessage(t); return; }
+    if (intent === 'book' && clinic && date && time) {
+      // Full booking from voice!
+      const ar = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+      const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      const dd = new Date(date.date);
+      const dateLabel = `${ar[dd.getDay()]} ${dd.getDate()} ${months[dd.getMonth()]}`;
+      const newBooking = { clinic, date: date.date, dateLabel, time };
+      setBooking(newBooking); bookingRef.current = newBooking;
+      addUserMsg(`🎤 ${t}`);
+      setStep('await_confirm'); stepRef.current = 'await_confirm';
+      await botReply(`فهمتك! 🎯 تأكيد الحجز:
+        <div class="cb-confirm-card" style="margin-top:10px">
+          <div class="cb-cc-head"><div class="cb-cc-icon">📋</div><span>تفاصيل الحجز</span></div>
+          <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${clinic.ar}</span></div>
+          <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${dateLabel}</span></div>
+          <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${time}</span></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <div onclick="window.__cbConfirm(true)" style="flex:1;padding:10px;border-radius:12px;background:linear-gradient(135deg,#00b894,#00cec9);text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:#fff">✅ تأكيد الحجز</div>
+          <div onclick="window.__cbConfirm(false)" style="flex:1;padding:10px;border-radius:12px;background:rgba(255,77,109,0.15);border:1px solid rgba(255,77,109,0.3);text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:#ff4d6d">❌ إلغاء</div>
+        </div>`, 700);
+      speak('اختار تأكيد الحجز أو إلغاء');
+      return;
+    }
+    // Partial or other — fall through to normal
+    processMessage(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [processMessage, botReply, speak]);
+
+  // Process voice transcript when recording ends
+  useEffect(() => {
+    if (!isRecording && voiceTranscript) {
+      processVoiceInput(voiceTranscript);
+      setVoiceTranscript('');
+    }
+    // eslint-disable-next-line
+  }, [isRecording]);
+
+  // TTS auto-play on important bot messages
+  useEffect(() => {
+    if (!ttsEnabled || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.type !== 'bot') return;
+    const txt = stripHtml(last.html || '');
+    if (/تم الحجز بنجاح|موعدك محجوز/.test(txt)) speak('تم الحجز بنجاح');
+    else if (/تم إلغاء الموعد|تم الإلغاء/.test(txt)) speak('تم إلغاء الموعد');
+    else if (/مواعيدك المحجوزة/.test(txt)) speak('دي مواعيدك الحالية');
+    else if (/لازم تسجل دخول/.test(txt)) speak('محتاج تسجل دخول الأول');
+    else if (/اختار الوقت/.test(txt)) speak('اختار الساعة المناسبة');
+    // eslint-disable-next-line
+  }, [messages]);
 
   const handleSend = () => {
     const text = inputVal.trim();
@@ -338,6 +580,7 @@ const ChatbotPage = () => {
   const quickSend = (text) => { processMessage(text); };
 
   const handleKeyDown = (e) => { if (e.key === 'Enter') handleSend(); };
+  const handleMicClick = () => { isRecording ? stopRecording() : startRecording(); };
 
   const dateStr = new Date().toLocaleDateString('ar-EG', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
@@ -394,6 +637,14 @@ const ChatbotPage = () => {
               <div className="cb-hdr-status"><div className="cb-status-dot"></div>متصل الآن</div>
             </div>
             <div className="cb-hdr-actions">
+              <button
+                className={`cb-tts-toggle ${ttsEnabled ? 'active' : ''}`}
+                onClick={() => setTtsEnabled(p => !p)}
+                title={ttsEnabled ? 'إيقاف الصوت' : 'تشغيل الصوت'}
+              >
+                <span className="cb-tts-icon">{ttsEnabled ? '🔊' : '🔇'}</span>
+                <span className="cb-tts-label">{ttsEnabled ? 'الصوت مفعّل' : 'الصوت مغلق'}</span>
+              </button>
               <div className="cb-hdr-btn" onClick={() => navigate('/')}>🏠</div>
             </div>
           </div>
@@ -406,7 +657,25 @@ const ChatbotPage = () => {
                 <div className="cb-msg-av"><img src={AVATAR} alt="av" style={avatarStyle} /></div>
                 <div className="cb-msg-body">
                   <div className="cb-bubble" dangerouslySetInnerHTML={{ __html: msg.type === 'bot' ? msg.html : msg.text }}></div>
-                  <div className="cb-msg-meta">{msg.time}</div>
+                  <div className="cb-msg-meta">
+                    {msg.time}
+                    {msg.type === 'bot' && (
+                      <span
+                        className={`cb-speaker-btn ${playingMsgIdx === i ? 'playing' : ''}`}
+                        onClick={() => speakMsg(msg.html, i)}
+                        title="استمع"
+                      >
+                        <span className="cb-sp-icon">🔊</span>
+                        <span className="cb-sp-label">استمع</span>
+                        <span className="cb-eq">
+                          <span className="cb-eq-bar"></span>
+                          <span className="cb-eq-bar"></span>
+                          <span className="cb-eq-bar"></span>
+                          <span className="cb-eq-bar"></span>
+                        </span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -425,13 +694,33 @@ const ChatbotPage = () => {
             <button className="cb-qbtn" onClick={() => quickSend('إلغاء موعد')}>🗑️ إلغاء موعد</button>
           </div>
 
+          {/* TTS Playing Bar */}
+          {isSpeaking && (
+            <div className="cb-tts-playing-bar">
+              <div className="cb-tts-wave">
+                <div className="cb-tts-wave-bar"></div><div className="cb-tts-wave-bar"></div>
+                <div className="cb-tts-wave-bar"></div><div className="cb-tts-wave-bar"></div>
+                <div className="cb-tts-wave-bar"></div>
+              </div>
+              <span>جاري التحدث...</span>
+              <button className="cb-tts-stop" onClick={stopTts}>⏹ إيقاف</button>
+            </div>
+          )}
+
           {/* Input */}
           <div className="cb-input-bar">
+            <button
+              className={`cb-mic-btn ${isRecording ? 'recording' : ''}`}
+              onClick={handleMicClick}
+              title={isRecording ? 'إيقاف التسجيل' : 'تسجيل صوتي'}
+            >
+              {isRecording ? '⏹' : '🎤'}
+            </button>
             <div className="cb-input-wrap">
               <input
                 ref={inputRef}
                 className="cb-chat-input"
-                placeholder="اكتب رسالتك هنا..."
+                placeholder="اكتب رسالتك أو اضغط 🎤 ..."
                 value={inputVal}
                 onChange={e => setInputVal(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -458,6 +747,20 @@ const ChatbotPage = () => {
           <div className="cb-footer">Powered by <span>Syncare</span> AI</div>
         </div>
       </div>
+
+      {/* Recording Overlay */}
+      {showOverlay && (
+        <div className="cb-rec-overlay">
+          <div className="cb-rec-ring">🎤</div>
+          <div className="cb-rec-text">جاري الاستماع...</div>
+          <div className="cb-rec-sub">اتكلم بوضوح بالعربي</div>
+          <canvas ref={waveCanvasRef} className="cb-rec-wave" width={250} height={60}></canvas>
+          {voiceTranscript && (
+            <div className="cb-rec-transcript">{voiceTranscript}</div>
+          )}
+          <button className="cb-rec-stop" onClick={stopRecording}>⏹ إيقاف التسجيل</button>
+        </div>
+      )}
     </div>
   );
 };
