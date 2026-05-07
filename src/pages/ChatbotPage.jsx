@@ -120,17 +120,17 @@ function getTime() {
 
 function detectClinic(text) {
   const map = [
-    { keys:['باطنة','internal','general medicine'], key:'adult_general' },
-    { keys:['جراح','surgery'], key:'surgery' },
-    { keys:['نسا','women'], key:'womens' },
-    { keys:['أطفال','children','طفل'], key:'children' },
-    { keys:['قلب','heart','cardiac'], key:'heart' },
-    { keys:['عين','عيون','eye'], key:'eye' },
-    { keys:['عظم','عظام','bone','joint'], key:'bones' },
-    { keys:['مخ','أعصاب','brain','neuro'], key:'brain' },
-    { keys:['جلد','skin'], key:'skin' },
-    { keys:['ورم','أورام','cancer'], key:'oncology' },
-    { keys:['أنف','أذن','حنجرة','ent','ear'], key:'ent' },
+    { keys:['باطن','الباطن','باطنة','الباطنة','باطنه','internal','general medicine','طب عام'], key:'adult_general' },
+    { keys:['جراح','جراحة','الجراحة','جراحه','surgery','عملية','عمليات'], key:'surgery' },
+    { keys:['نسا','نساء','نسائ','نسائية','نسائيه','توليد','النسا','women','حمل','ولادة','ولاده'], key:'womens' },
+    { keys:['أطفال','اطفال','الأطفال','الاطفال','طفل','children','pediatr','أولاد','اولاد'], key:'children' },
+    { keys:['قلب','القلب','قلوب','heart','cardiac','أوعية','اوعية','أوعيه','القلب والأوعية'], key:'heart' },
+    { keys:['عين','عيون','العيون','العين','eye','نظر','نظارة','نظاره','بصر','رمد'], key:'eye' },
+    { keys:['عظم','عظام','العظام','عضم','عضام','bone','joint','مفاصل','مفصل','orthop','كسر','كسور'], key:'bones' },
+    { keys:['مخ','أعصاب','اعصاب','المخ','الأعصاب','الاعصاب','brain','neuro','عصب','أعصاب'], key:'brain' },
+    { keys:['جلد','جلدية','جلديه','الجلدية','الجلديه','skin','derma','بشرة','بشره'], key:'skin' },
+    { keys:['ورم','أورام','اورام','الأورام','الاورام','cancer','oncol','سرطان'], key:'oncology' },
+    { keys:['أنف','انف','الأنف','الانف','أذن','اذن','حنجرة','حنجره','ent','ear','nose','throat','ودن','زور'], key:'ent' },
   ];
   const t = text.toLowerCase();
   for (const m of map) if (m.keys.some(k => t.includes(k))) return CLINICS.find(c => c.key === m.key);
