@@ -24,49 +24,49 @@ const TEAM_MEMBERS = [
     id: 3,
     name: 'Esraa Esmat',
     role: 'Member',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: '',
     photoUrl: `${process.env.PUBLIC_URL}/images/image3.jpg`, // missing, needs fallback or addition later
   },
   {
     id: 4,
     name: 'Ahmed Adel',
     role: 'Member',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: '',
     photoUrl: `${process.env.PUBLIC_URL}/images/image4.jpg`,
   },
   {
     id: 5,
     name: 'Khaled Ladham',
     role: 'Member',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: '',
     photoUrl: `${process.env.PUBLIC_URL}/images/image5.jpg`,
   },
   {
     id: 6,
     name: 'Ahmed Hani',
     role: 'Member',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: '',
     photoUrl: `${process.env.PUBLIC_URL}/images/image6.jpg`, // missing
   },
   {
     id: 7,
     name: 'Sama Mohammed',
     role: 'Member',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: '',
     photoUrl: `${process.env.PUBLIC_URL}/images/image7.jpg`, // missing
   },
   {
     id: 8,
     name: 'Shrouk Mohamed',
     role: 'Member',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: '',
     photoUrl: `${process.env.PUBLIC_URL}/images/image8.jpg`, // missing
   },
   {
     id: 9,
     name: 'Sajid Almanakhly',
     role: 'Member',
-    contribution: 'Key contribution details will be added here soon.',
+    contribution: '',
     photoUrl: `${process.env.PUBLIC_URL}/images/image9.jpg`,
   }
 ];
