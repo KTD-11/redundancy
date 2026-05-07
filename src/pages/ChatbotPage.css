@@ -146,10 +146,10 @@
 .chatbot-page .cb-dp-day.selected .cb-dd-num{color:var(--cb-blue3)}
 
 /* Time slots */
-.chatbot-page .cb-time-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
-.chatbot-page .cb-ts{padding:9px 8px;border-radius:var(--cb-r12);border:1px solid var(--cb-b1);
+.chatbot-page .cb-time-slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.chatbot-page .cb-ts{padding:8px 4px;border-radius:var(--cb-r12);border:1px solid var(--cb-b1);
   background:var(--cb-glass);text-align:center;cursor:pointer;
-  font-size:12px;font-weight:600;color:var(--cb-t2);transition:all .2s}
+  font-size:11.5px;font-weight:600;color:var(--cb-t2);transition:all .2s}
 .chatbot-page .cb-ts:hover{border-color:var(--cb-blue);color:var(--cb-blue);background:var(--cb-glow1)}
 .chatbot-page .cb-ts.selected{background:linear-gradient(135deg,rgba(0,119,182,.35),rgba(0,180,216,.2));
   border-color:var(--cb-blue);color:white;box-shadow:0 0 14px var(--cb-glow2)}

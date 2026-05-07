@@ -24,7 +24,13 @@ const CLINICS = [
   { key:'ent',           ar:'أنف وأذن وحنجرة',en:'ENT',             icon:'👂' },
 ];
 
-const TIMES = ['09:00 AM','10:00 AM','11:00 AM','12:00 PM','01:00 PM','02:00 PM','03:00 PM','04:00 PM','05:00 PM'];
+const TIMES = [
+  '08:00','08:15','08:30','08:45',
+  '09:00','09:15','09:30','09:45',
+  '10:00','10:15','10:30','10:45',
+  '11:00','11:15','11:30','11:45',
+  '12:00',
+];
 
 const MEDICAL_KW = ['صداع','ألم','حرارة','كحة','إسهال','دوخة','حساسية','ضغط','سكر','headache','pain','fever','nausea'];
 
@@ -122,26 +128,64 @@ const ChatbotPage = () => {
   }, [addBotMsg]);
 
   /* ── CLINIC SELECTION ── */
+  const handlePickTime = useCallback((time) => {
+    const b = bookingRef.current;
+    const newB = { ...b, time };
+    setBooking(newB); bookingRef.current = newB;
+    addUserMsg(time);
+    setStep('await_confirm'); stepRef.current = 'await_confirm';
+    botReply(`ممتاز! تأكيد الحجز:
+      <div class="cb-confirm-card" style="margin-top:10px">
+        <div class="cb-cc-head"><div class="cb-cc-icon">📋</div><span>تفاصيل الحجز</span></div>
+        <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${newB.clinic?.ar || ''}</span></div>
+        <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${newB.dateLabel || newB.date}</span></div>
+        <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${time}</span></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <div onclick="window.__cbConfirm(true)" style="flex:1;padding:10px;border-radius:12px;background:linear-gradient(135deg,#00b894,#00cec9);text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:#fff">✅ تأكيد الحجز</div>
+        <div onclick="window.__cbConfirm(false)" style="flex:1;padding:10px;border-radius:12px;background:rgba(255,77,109,0.15);border:1px solid rgba(255,77,109,0.3);text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:#ff4d6d">❌ إلغاء</div>
+      </div>`, 600);
+  }, [botReply]);
+
+  const handleConfirm = useCallback((confirmed) => {
+    if (stepRef.current !== 'await_confirm') return;
+    if (confirmed) {
+      const ref = '#' + Math.random().toString(36).substring(2, 7).toUpperCase();
+      const b = bookingRef.current;
+      addUserMsg('تأكيد ✅');
+      botReply(`✅ <strong>تم الحجز بنجاح!</strong>
+        <div class="cb-confirm-card">
+          <div class="cb-cc-head"><div class="cb-cc-icon">✅</div><span>موعدك محجوز!</span></div>
+          <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${b.clinic?.ar || ''}</span></div>
+          <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${b.dateLabel || b.date}</span></div>
+          <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${b.time}</span></div>
+          <div class="cb-cc-row"><span class="cb-l">رقم الحجز</span><span class="cb-v" style="color:#48cae4;font-family:monospace;font-size:14px">${ref}</span></div>
+        </div>
+        <div style="font-size:12px;color:#3d6e88;margin-top:10px">🌸 هنستناك في الموعد — يمكنك إلغاء الموعد بكتابة "إلغاء موعد"</div>`, 700);
+    } else {
+      addUserMsg('إلغاء ❌');
+      botReply('تم الإلغاء ✅ لو عايز تحجز تاني اكتب <strong>"احجز موعد"</strong>', 500);
+    }
+    setStep('idle'); stepRef.current = 'idle'; setBooking({}); bookingRef.current = {};
+  }, [botReply]);
+
   const selectClinic = useCallback((key, ar, en) => {
     const clinic = CLINICS.find(c => c.key === key);
     const days = getDays();
-    const newBooking = { clinic, date: days[1].full, dateLabel: `${days[1].name} ${days[1].num} ${days[1].month}` };
-    setBooking(newBooking);
-    bookingRef.current = newBooking;
+    const newBooking = { clinic, date: days[1].full, dateLabel: `${days[1].name} ${days[1].num} ${days[1].month}`, time: '' };
+    setBooking(newBooking); bookingRef.current = newBooking;
     addUserMsg(`${ar} - ${en}`);
-    setStep('await_time');
-    stepRef.current = 'await_time';
-    const newB = { ...newBooking, time: '02:00 PM' };
-    setBooking(newB);
-    bookingRef.current = newB;
+    setStep('await_time'); stepRef.current = 'await_time';
     botReply(buildTimeSlots(), 800);
   }, [botReply]);
 
-  // Make selectClinic available globally for innerHTML onclick
+  // Expose global functions for innerHTML onclick
   useEffect(() => {
     window.__cbSelectClinic = selectClinic;
-    return () => { delete window.__cbSelectClinic; };
-  }, [selectClinic]);
+    window.__cbPickTime = handlePickTime;
+    window.__cbConfirm = handleConfirm;
+    return () => { delete window.__cbSelectClinic; delete window.__cbPickTime; delete window.__cbConfirm; };
+  }, [selectClinic, handlePickTime, handleConfirm]);
 
   /* ── HTML Builders ── */
   const buildClinicsGrid = () => {
@@ -206,45 +250,30 @@ const ChatbotPage = () => {
         break;
       }
       case 'await_time': {
-        const newB = { ...currentBooking, time: t };
-        setBooking(newB); bookingRef.current = newB;
-        setStep('await_confirm'); stepRef.current = 'await_confirm';
-        await botReply(`ممتاز! تأكيد الحجز:<div class="cb-confirm-card" style="margin-top:10px">
-          <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${newB.clinic?.ar || ''}</span></div>
-          <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${newB.dateLabel || newB.date}</span></div>
-          <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${newB.time}</span></div>
-        </div>اكتب <strong>أيوه</strong> للتأكيد أو <strong>لا</strong> للإلغاء`);
+        // User typed a time instead of clicking
+        handlePickTime(t);
         break;
       }
       case 'await_confirm': {
-        if (/أيوه|ايوه|نعم|yes|اكيد|تمام|ok/i.test(t)) {
-          const ref = '#' + Math.random().toString(36).substring(2, 7).toUpperCase();
-          const b = bookingRef.current;
-          await botReply(`✅ <strong>تأكيد الحجز</strong>
-            <div class="cb-confirm-card">
-              <div class="cb-cc-head"><div class="cb-cc-icon">✅</div><span>تم الحجز بنجاح!</span></div>
-              <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${b.clinic?.ar || ''}</span></div>
-              <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${b.dateLabel || b.date}</span></div>
-              <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${b.time}</span></div>
-              <div class="cb-cc-row"><span class="cb-l">رقم الحجز</span><span class="cb-v" style="color:#48cae4;font-family:monospace">${ref}</span></div>
-            </div>
-            <div style="font-size:11.5px;color:#3d6e88;margin-top:8px">🌸 هنستناك في الموعد</div>`);
+        if (/أيوه|ايوه|نعم|yes|اكيد|تمام|ok|تأكيد|confirm/i.test(t)) {
+          handleConfirm(true);
+        } else if (/لا|no|الغ|cancel|إلغاء/i.test(t)) {
+          handleConfirm(false);
         } else {
-          await botReply('تم الإلغاء ✅');
+          await botReply('اكتب <strong>"أيوه"</strong> للتأكيد أو <strong>"لا"</strong> للإلغاء');
         }
-        setStep('idle'); stepRef.current = 'idle'; setBooking({}); bookingRef.current = {};
         break;
       }
       case 'await_cancel': {
-        await botReply(`مش لاقي موعد بالرقم ده 😕`);
+        await botReply(`مش لاقي موعد بالرقم ده 😕<br>لو عايز تحجز موعد جديد اكتب <strong>"احجز موعد"</strong>`);
         setStep('idle'); stepRef.current = 'idle';
         break;
       }
       default:
         setStep('idle'); stepRef.current = 'idle';
-        await botReply('حاجة غلط 🤔 اكتب "احجز موعد".');
+        await botReply('حاجة غلط 🤔 اكتب <strong>"احجز موعد"</strong> أو اضغط أحد الأزرار.');
     }
-  }, [botReply, selectClinic]);
+  }, [botReply, selectClinic, handlePickTime, handleConfirm]);
 
   const handleSend = () => {
     const text = inputVal.trim();
@@ -383,12 +412,14 @@ const ChatbotPage = () => {
 export default ChatbotPage;
 
 function buildTimeSlots() {
-  return `<div style="font-size:13px;margin-bottom:6px;">اختار الوقت المناسب 🕐</div>
+  return `<div style="font-size:13px;margin-bottom:8px;font-weight:700">🕐 اختار الوقت المناسب</div>
+    <div style="font-size:10.5px;color:#3d6e88;margin-bottom:8px">المواعيد من 8:00 ص حتى 12:00 م — كل ربع ساعة</div>
     <div class="cb-time-slots">
       ${TIMES.map(t => `<div class="cb-ts" onclick="
         document.querySelectorAll('.cb-ts').forEach(x=>x.classList.remove('selected'));
         this.classList.add('selected');
+        window.__cbPickTime('${t}');
       ">${t}</div>`).join('')}
     </div>
-    <div style="font-size:11px;color:#3d6e88;margin-top:8px">أو اكتب الوقت اللي يناسبك</div>`;
+    <div style="font-size:10.5px;color:#3d6e88;margin-top:8px">👆 اضغط على الوقت اللي يناسبك</div>`;
 }
