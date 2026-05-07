@@ -4,6 +4,8 @@
 // ═══════════════════════════════════════════
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { bookAppointment, fetchAppointments, cancelAppointment } from '../api/appointments';
 import './ChatbotPage.css';
 
 const AVATAR = `${process.env.PUBLIC_URL}/bot-avatar.jpg`;
@@ -11,17 +13,17 @@ const avatarStyle = { width:'100%', height:'100%', objectFit:'cover', borderRadi
 
 /* ── CONSTANTS ── */
 const CLINICS = [
-  { key:'adult_general', ar:'الباطنة العامة', en:'General Medicine', icon:'🩺' },
-  { key:'surgery',       ar:'الجراحة',       en:'Surgery',          icon:'🔪' },
-  { key:'womens',        ar:'النساء والتوليد',en:"Women's Health",   icon:'🤰' },
-  { key:'children',      ar:'طب الأطفال',    en:'Pediatrics',       icon:'👶' },
-  { key:'heart',         ar:'القلب والأوعية', en:'Heart Clinic',     icon:'❤️' },
-  { key:'eye',           ar:'طب العيون',     en:'Eye Clinic',       icon:'👁️' },
-  { key:'bones',         ar:'العظام والمفاصل',en:'Orthopedics',      icon:'🦴' },
-  { key:'brain',         ar:'المخ والأعصاب', en:'Neurology',        icon:'🧠' },
-  { key:'skin',          ar:'الجلدية',       en:'Dermatology',      icon:'🧴' },
-  { key:'oncology',      ar:'الأورام',       en:'Oncology',         icon:'🎗️' },
-  { key:'ent',           ar:'أنف وأذن وحنجرة',en:'ENT',             icon:'👂' },
+  { key:'adult_general', ar:'الباطنة العامة', en:'General Medicine', apiType:'Adult General Medicine', icon:'🩺' },
+  { key:'surgery',       ar:'الجراحة',       en:'Surgery',          apiType:'General Surgery',        icon:'🔪' },
+  { key:'womens',        ar:'النساء والتوليد',en:"Women's Health",   apiType:"Women's Health",         icon:'🤰' },
+  { key:'children',      ar:'طب الأطفال',    en:'Pediatrics',       apiType:"Children's Health",      icon:'👶' },
+  { key:'heart',         ar:'القلب والأوعية', en:'Heart Clinic',     apiType:'Heart Clinic',           icon:'❤️' },
+  { key:'eye',           ar:'طب العيون',     en:'Eye Clinic',       apiType:'Eye Clinic',             icon:'👁️' },
+  { key:'bones',         ar:'العظام والمفاصل',en:'Orthopedics',      apiType:'Bones and Joints',       icon:'🦴' },
+  { key:'brain',         ar:'المخ والأعصاب', en:'Neurology',        apiType:'Brain and Nerves',       icon:'🧠' },
+  { key:'skin',          ar:'الجلدية',       en:'Dermatology',      apiType:'Skin Clinic',            icon:'🧴' },
+  { key:'oncology',      ar:'الأورام',       en:'Oncology',         apiType:'Cancer Care',            icon:'🎗️' },
+  { key:'ent',           ar:'أنف وأذن وحنجرة',en:'ENT',             apiType:'Ear, Nose, and Throat',  icon:'👂' },
 ];
 
 const TIMES = [
@@ -77,6 +79,7 @@ function detectClinic(text) {
 /* ── COMPONENT ── */
 const ChatbotPage = () => {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const messagesRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -147,27 +150,45 @@ const ChatbotPage = () => {
       </div>`, 600);
   }, [botReply]);
 
-  const handleConfirm = useCallback((confirmed) => {
+  const handleConfirm = useCallback(async (confirmed) => {
     if (stepRef.current !== 'await_confirm') return;
+    setStep('idle'); stepRef.current = 'idle';
     if (confirmed) {
-      const ref = '#' + Math.random().toString(36).substring(2, 7).toUpperCase();
-      const b = bookingRef.current;
+      if (!isLoggedIn) {
+        addUserMsg('تأكيد ✅');
+        await botReply('⚠️ لازم تسجل دخول الأول عشان تقدر تحجز<br><strong>سجّل دخول</strong> وارجع حاول تاني', 600);
+        setBooking({}); bookingRef.current = {};
+        return;
+      }
       addUserMsg('تأكيد ✅');
-      botReply(`✅ <strong>تم الحجز بنجاح!</strong>
-        <div class="cb-confirm-card">
-          <div class="cb-cc-head"><div class="cb-cc-icon">✅</div><span>موعدك محجوز!</span></div>
-          <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${b.clinic?.ar || ''}</span></div>
-          <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${b.dateLabel || b.date}</span></div>
-          <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${b.time}</span></div>
-          <div class="cb-cc-row"><span class="cb-l">رقم الحجز</span><span class="cb-v" style="color:#48cae4;font-family:monospace;font-size:14px">${ref}</span></div>
-        </div>
-        <div style="font-size:12px;color:#3d6e88;margin-top:10px">🌸 هنستناك في الموعد — يمكنك إلغاء الموعد بكتابة "إلغاء موعد"</div>`, 700);
+      setTyping(true); setInputDisabled(true);
+      const b = bookingRef.current;
+      // Convert date from YYYY-MM-DD to DD/MM/YYYY
+      const [y, m, d] = (b.date || '').split('-');
+      const apiDate = `${d}/${m}/${y}`;
+      try {
+        const res = await bookAppointment({ date: apiDate, time: b.time, type: b.clinic?.apiType || '' });
+        setTyping(false); setInputDisabled(false);
+        if (res) {
+          addBotMsg(`✅ <strong>تم الحجز بنجاح!</strong>
+            <div class="cb-confirm-card">
+              <div class="cb-cc-head"><div class="cb-cc-icon">✅</div><span>موعدك محجوز!</span></div>
+              <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${b.clinic?.ar || ''}</span></div>
+              <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${b.dateLabel || b.date}</span></div>
+              <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${b.time}</span></div>
+            </div>
+            <div style="font-size:12px;color:#3d6e88;margin-top:10px">🌸 ${res.message || 'هنستناك في الموعد'}</div>`);
+        }
+      } catch (err) {
+        setTyping(false); setInputDisabled(false);
+        addBotMsg(`❌ مشكلة في الحجز: ${err.message || 'حاول تاني'}`);
+      }
     } else {
       addUserMsg('إلغاء ❌');
-      botReply('تم الإلغاء ✅ لو عايز تحجز تاني اكتب <strong>"احجز موعد"</strong>', 500);
+      await botReply('تم الإلغاء ✅ لو عايز تحجز تاني اكتب <strong>"احجز موعد"</strong>', 500);
     }
-    setStep('idle'); stepRef.current = 'idle'; setBooking({}); bookingRef.current = {};
-  }, [botReply]);
+    setBooking({}); bookingRef.current = {};
+  }, [botReply, isLoggedIn, addBotMsg]);
 
   const selectClinic = useCallback((key, ar, en) => {
     const clinic = CLINICS.find(c => c.key === key);
@@ -222,7 +243,29 @@ const ChatbotPage = () => {
       case 'idle': {
         if (/عيادة|عيادات|clinic/i.test(t)) { await botReply(buildClinicsGrid(), 700); break; }
         if (/مواعيدي|appointment/i.test(t) && !/احجز|book/i.test(t)) {
-          await botReply('مفيش مواعيد محجوزة دلوقتي 📅<br><span style="font-size:12px;color:#3d6e88">اضغط "احجز موعد" لحجز موعدك الأول</span>');
+          if (!isLoggedIn) { await botReply('⚠️ لازم تسجل دخول الأول عشان تشوف مواعيدك'); break; }
+          setTyping(true); setInputDisabled(true);
+          try {
+            const res = await fetchAppointments();
+            setTyping(false); setInputDisabled(false);
+            const list = res.data || [];
+            if (!list.length) {
+              addBotMsg('مفيش مواعيد محجوزة دلوقتي 📅<br><span style="font-size:12px;color:#3d6e88">اضغط "احجز موعد" لحجز موعدك الأول</span>');
+            } else {
+              const cards = list.map(a => `
+                <div class="cb-confirm-card" style="margin-top:8px">
+                  <div class="cb-cc-head"><div class="cb-cc-icon">📅</div><span>موعد محجوز</span></div>
+                  <div class="cb-cc-row"><span class="cb-l">العيادة</span><span class="cb-v">${a.appointment_type || a.appointment_name || ''}</span></div>
+                  <div class="cb-cc-row"><span class="cb-l">التاريخ</span><span class="cb-v">${a.appointment_date || ''}</span></div>
+                  <div class="cb-cc-row"><span class="cb-l">الوقت</span><span class="cb-v">${a.appointment_time || ''}</span></div>
+                  <div class="cb-cc-row"><span class="cb-l">رقم</span><span class="cb-v" style="color:#48cae4;font-family:monospace">#${a.appointment_id}</span></div>
+                </div>`).join('');
+              addBotMsg(`📋 <strong>مواعيدك المحجوزة (${list.length})</strong>${cards}`);
+            }
+          } catch (err) {
+            setTyping(false); setInputDisabled(false);
+            addBotMsg(`❌ مشكلة في جلب المواعيد: ${err.message || 'حاول تاني'}`);
+          }
           break;
         }
         if (/إلغاء|الغاء|cancel/i.test(t)) {
@@ -265,7 +308,17 @@ const ChatbotPage = () => {
         break;
       }
       case 'await_cancel': {
-        await botReply(`مش لاقي موعد بالرقم ده 😕<br>لو عايز تحجز موعد جديد اكتب <strong>"احجز موعد"</strong>`);
+        if (!isLoggedIn) { await botReply('⚠️ لازم تسجل دخول الأول'); setStep('idle'); stepRef.current = 'idle'; break; }
+        const cancelId = t.replace('#','').trim();
+        setTyping(true); setInputDisabled(true);
+        try {
+          const res = await cancelAppointment(cancelId === '*' ? '*' : Number(cancelId));
+          setTyping(false); setInputDisabled(false);
+          addBotMsg(`✅ ${res.message || 'تم إلغاء الموعد بنجاح'}`);
+        } catch (err) {
+          setTyping(false); setInputDisabled(false);
+          addBotMsg(`❌ ${err.message || 'مش لاقي موعد بالرقم ده'}`);
+        }
         setStep('idle'); stepRef.current = 'idle';
         break;
       }

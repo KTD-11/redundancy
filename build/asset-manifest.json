@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/frontend_checkinsystem/static/css/main.dadb2059.css",
-    "main.js": "/frontend_checkinsystem/static/js/main.1a8403d1.js",
+    "main.js": "/frontend_checkinsystem/static/js/main.ad67f7fc.js",
     "index.html": "/frontend_checkinsystem/index.html",
     "main.dadb2059.css.map": "/frontend_checkinsystem/static/css/main.dadb2059.css.map",
-    "main.1a8403d1.js.map": "/frontend_checkinsystem/static/js/main.1a8403d1.js.map"
+    "main.ad67f7fc.js.map": "/frontend_checkinsystem/static/js/main.ad67f7fc.js.map"
   },
   "entrypoints": [
     "static/css/main.dadb2059.css",
-    "static/js/main.1a8403d1.js"
+    "static/js/main.ad67f7fc.js"
   ]
 }
