@@ -12,16 +12,39 @@ import './ChatbotPage.css';
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 function detectTime(text) {
-  const t = text.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-  const m = t.match(/(?:الساع[ةه]|ساع[ةه])\s*(\d{1,2})(?:[:.](\d{2}))?/i)
-         || t.match(/(\d{1,2})(?:[:.](\d{2}))?\s*(?:صباح|مساء|ص|م)?/i);
+  // Arabic word numbers → digits
+  const wordMap = [
+    [/واحد[ةه]?/g,'1'],[/اتنين|اثنين|تنين/g,'2'],[/تلات[ةه]?|ثلاث[ةه]?/g,'3'],
+    [/اربع[ةه]?|أربع[ةه]?/g,'4'],[/خمس[ةه]?/g,'5'],[/ست[ةه]?/g,'6'],
+    [/سبع[ةه]?/g,'7'],[/تمان[ةيه]?|ثماني[ةه]?/g,'8'],[/تسع[ةه]?/g,'9'],
+    [/عشر[ةه]?/g,'10'],[/حداشر|احداشر|إحداشر/g,'11'],[/اتناشر|إتناشر|اثناعشر/g,'12'],
+  ];
+  let t = text;
+  t = t.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  for (const [rx, val] of wordMap) t = t.replace(rx, val);
+
+  // Only match مساء as a full word, not the single letter م anywhere
+  const isPM = /مساء|مسائ/.test(t) || /\d\s*م\b/.test(t);
+
+  const m = t.match(/(?:الساع[ةه]|ساع[ةه])\s*(\d{1,2})(?:\s*(?:و|:)\s*(\d{2}))?/i)
+         || t.match(/(\d{1,2})(?:[:.]\s*(\d{2}))?\s*(?:صباح[اً]?)?/i);
   if (!m) return null;
+
   let h = parseInt(m[1], 10);
-  const min = m[2] ? m[2] : '00';
-  if (/مساء|م/.test(t) && h < 12) h += 12;
+  let min = m[2] ? m[2] : '00';
+
+  // Handle ونص (half) and وربع (quarter)
+  if (/نص|نصف/.test(t)) min = '30';
+  if (/و\s*ربع/.test(t)) min = '15';
+  if (/إلا\s*ربع/.test(t)) { min = '45'; h = h - 1; }
+
+  if (isPM && h < 12) h += 12;
   if (h < 8 || h > 12) return null;
+
   const ts = `${String(h).padStart(2,'0')}:${min}`;
-  return ['08:00','08:15','08:30','08:45','09:00','09:15','09:30','09:45','10:00','10:15','10:30','10:45','11:00','11:15','11:30','11:45','12:00'].includes(ts) ? ts : `${String(h).padStart(2,'0')}:00`;
+  const VALID = ['08:00','08:15','08:30','08:45','09:00','09:15','09:30','09:45','10:00','10:15','10:30','10:45','11:00','11:15','11:30','11:45','12:00'];
+  if (VALID.includes(ts)) return ts;
+  return `${String(h).padStart(2,'0')}:00`;
 }
 
 function detectDate(text) {
