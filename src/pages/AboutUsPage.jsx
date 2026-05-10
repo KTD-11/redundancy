@@ -65,8 +65,8 @@ const TEAM_MEMBERS = [
   {
     id: 9,
     name: 'Sajid Almanakhly',
-    role: 'Member',
-    contribution: '',
+    role: 'Modelling and Development',
+    contribution: "Was responsible for the continous modelling of the system, adjusting the parameters, and the creation of the objective functions used for optimization of patient appointments. I've also participated in the 3D map navigation, and in creation of the mobile port of SynCare.",
     photoUrl: `${process.env.PUBLIC_URL}/images/image9.jpg`,
   }
 ];
