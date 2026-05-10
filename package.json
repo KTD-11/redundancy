@@ -1,6 +1,6 @@
 {
   "name": "syncare-frontend",
-  "homepage": "https://asd33366544.github.io/frontend_checkinsystem",
+  "homepage": "https://<your-github-username>.github.io/<your-repo-name>",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
