@@ -17,7 +17,7 @@ const TEAM_MEMBERS = [
     id: 2,
     name: 'Ahmed (KTD) Khaled',
     role: 'Backend Architect & Developer',
-    contribution: "I architect, build, and maintain Syncare's high-performance backend, ensuring patient data remains heavily encrypted and flawlessly accessible.",
+    contribution: "I build the foundation that allows Syncare to move fast without breaking things. As the lead architect of our backend infrastructure, I am responsible for designing a server environment where performance and privacy coexist perfectly. I engineer high-speed, zero-latency data pipelines that deliver information in milliseconds, backed by state-of-the-art cryptographic hashing to keep every byte of patient data heavily encrypted. My goal is to create a seamless, flawless experience where doctors and patients never have to think about the complex technology working behind the scenes.",
     photoUrl: `${process.env.PUBLIC_URL}/images/image2.jpg`,
   },
   {
